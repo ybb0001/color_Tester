@@ -15,7 +15,7 @@
 #include <shellapi.h>
 #include <cmath>
 #include <algorithm> 
-
+#include <SFRProcess.h>
 
 #ifdef  PYTHON_DLL
 #include <Python.h>
@@ -47,7 +47,7 @@ color_Tester::color_Tester(QWidget *parent)
 	Py_Initialize();//使用python之前，要调用Py_Initialize();这个函数进行初始化
 
 	if (!Py_IsInitialized())	{
-		ui.log->setText("Python Initialize Fail!\n");
+		ui.log->insertPlainText("Python Initialize Fail!\n");
 	}
 	PyRun_SimpleString("import sys");
 	PyRun_SimpleString("sys.path.append('./')");//这一步很重要，修改Python路径
@@ -67,17 +67,17 @@ color_Tester::color_Tester(QWidget *parent)
 	
 	pModule = PyImport_ImportModule("Iris_Predict");//这里是要调用的文件名hello.py
 	if (pModule == NULL) {
-		ui.log->setText("Python pModule Initialize Fail!\n");
+		ui.log->insertPlainText("Python pModule Initialize Fail!\n");
 	}
 
 	pFunc1 = PyObject_GetAttrString(pModule, "mLoadModel");//这里是要调用的函数名
 	if (!pFunc1 || !PyCallable_Check(pFunc1)) {
-		ui.log->setText("Python PyObject Initialize Fail!\n");
+		ui.log->insertPlainText("Python PyObject Initialize Fail!\n");
 	}
 
 	pFunc2 = PyObject_GetAttrString(pModule, "mModel_predict");//这里是要调用的函数名
 	if (!pFunc2 || !PyCallable_Check(pFunc2)) {
-		ui.log->setText("Python PyObject Initialize Fail!\n");
+		ui.log->insertPlainText("Python PyObject Initialize Fail!\n");
 	}
 
 #if 1
@@ -85,12 +85,12 @@ color_Tester::color_Tester(QWidget *parent)
 	mBestModel = PyObject_CallObject(pFunc1, args1);//调用函数PyObject_CallFunctionObjArgs 
 	if (mBestModel == NULL) {
 		PyErr_Print();  // 打印错误信息
-		ui.log->setText("Call Python Function mAdd2 failed!\n");
+		ui.log->insertPlainText("Call Python Function mAdd2 failed!\n");
 		return;
 	}
 	if (PyErr_Occurred()) {
 		PyErr_Print();
-		ui.log->setText("Python error occurred!\n");
+		ui.log->insertPlainText("Python error occurred!\n");
 		return;
 	}
 
@@ -2172,6 +2172,7 @@ void color_Tester::on_pushButton_Iris_clicked() {
 
 	TCHAR lpTexts[256] = { 0 };
 	string dino_path = "";
+	int res = 0;
 
 	GetPrivateProfileString(TEXT("TEST_OPTION"), TEXT("path"), TEXT(""), lpTexts, 255, TEXT(".\\Setting\\specValue.ini"));
 	dino_path = TCHAR2STRING(lpTexts);
@@ -2185,20 +2186,19 @@ void color_Tester::on_pushButton_Iris_clicked() {
 	PyObject* pRet2 = PyObject_CallObject(pFunc2, args2);//调用函数PyObject_CallFunctionObjArgs 
 	if (pRet2 == NULL) {
 		PyErr_Print();  // 打印错误信息
-		ui.log->setText("Call Python Function pFunc2 failed!\n");
+		ui.log->insertPlainText("Call Python Function pFunc2 failed!\n");
 		return;
 	}
 	if (PyErr_Occurred()) {
 		PyErr_Print();
-		ui.log->setText("Python error occurred!\n");
+		ui.log->insertPlainText("Python error occurred!\n");
 		return;
 	}
-	int res = 0;
 
 	//PyArg_ParseTuple(pRet2, "i", &res);//分析返回的元组值
 
 	if (!PyArg_Parse(pRet2, "i", &res)) {
-		ui.log->setText("Failed to parse Python return value to double!\n");
+		ui.log->insertPlainText("Failed to parse Python return value to double!\n");
 		return;
 	}
 
@@ -2207,6 +2207,35 @@ void color_Tester::on_pushButton_Iris_clicked() {
 	ui.textBrowser_cnt->setFontPointSize(48);
 	ui.textBrowser_cnt->setText(QString::number(res));
 	ui.textBrowser_cnt->setAlignment(Qt::AlignCenter);
+}
+
+void color_Tester::on_pushButton_img_area_clicked() {
+	ui.log->clear();
+	string iris_img = "D:\\Project\\color_Tester\\color_Tester\\Data\\Segmentation_Multi\\Models\\ResUNet10\\Predict\\Scan_4095_OC1_predicted.bmp";
+	image = imread(iris_img);
+
+	int mhole = 0, mblade = 0, mback = 0;
+	for (int i = 0; i < image.rows; i++) {
+		for (int j = 0; j < image.cols; j++) {
+
+			Vec3b vc = image.at<Vec3b>(i, j);
+			if ((int)vc.val[1] == 128)			{
+				mhole++;
+			}
+			else if ((int)vc.val[2] == 128) {
+				mblade++;
+			}
+			else { 
+				mback++; 
+			}
+		}
+	}
+	string tmp = "hole area:	" + to_string(mhole) + "\n";
+	ui.log->insertPlainText(tmp.c_str());
+	tmp = "mblade area:	" + to_string(mblade) + "\n";
+	ui.log->insertPlainText(tmp.c_str());
+	tmp = "mback area:	" + to_string(mback) + "\n";
+	ui.log->insertPlainText(tmp.c_str());
 }
 
 int OutputLogFunction(std::string log)
@@ -2261,12 +2290,16 @@ int FourDirectionSFR(UINT width, UINT height, BYTE *p_src, BYTE *p_dst3, std::ve
 	if (save_image) {
 		cv::imwrite(".\\image\\SFR_1.bmp", marked_img);
 	}
+	CSfr m_pSfr;
+	m_pSfr.Dealloc();
+	m_pSfr.Init(roi_length);
+
 
 	SFR_Calculator sfr_calc;
 	SFR_Calculator::SFR_Option sfr_option;
 	sfr_option.spatial_freq_denominator = spatial_freq_denominator;
 	sfr_option.gamma = gamma;
-
+	sfr_option.dft_type = 0;
 	for (int point_cnt = 0; point_cnt < dect_pos.size(); point_cnt++) {
 
 		std::string str_field = std::to_string(dect_pos[point_cnt].first);
@@ -2306,8 +2339,21 @@ int FourDirectionSFR(UINT width, UINT height, BYTE *p_src, BYTE *p_dst3, std::ve
 
 			double sfr_result = -1.0;
 			if (!cur_edge_img.empty()) {
+#if 0
 				int ret_sfr = sfr_calc.Init(cur_edge_img, OutputLogFunction, ".\\image\\", false, false, edge_name);
 				ret_sfr += sfr_calc.ProcessSFR(sfr_result, sfr_option);
+
+#else
+				for (int x = 0; x < cur_edge_img.cols; x++) {
+					for (int y = 0; y < cur_edge_img.rows; y++) {
+						m_pSfr.GetSFRDataHandle()->ImageData[y][x] = (double)cur_edge_img.at<uchar>(y, x);
+					}
+				}
+
+				sfr_result = m_pSfr.sfr(dir/2, 6.66624, 16, 255, 0);
+				int ret_sfr = 0;
+#endif 
+
 				if (ret_sfr) {
 					sfr_result = -1.0;
 					ret += 1;
@@ -2338,15 +2384,26 @@ void color_Tester::on_pushButton_SFR_ROI4_clicked() {
 	std::vector<std::pair<double, double>> dect_pos;	//first:field, second:degree
 
 	dect_pos.push_back(std::make_pair(0, 0));
-	dect_pos.push_back(std::make_pair(0.3, 37));  // right down
-	dect_pos.push_back(std::make_pair(0.3, 143));   // left down
-	dect_pos.push_back(std::make_pair(0.3, 217));   // left Top
-	dect_pos.push_back(std::make_pair(0.3, 323));   // right Top
+	//dect_pos.push_back(std::make_pair(0.3, 37));  // right down
+	//dect_pos.push_back(std::make_pair(0.3, 143));   // left down
+	//dect_pos.push_back(std::make_pair(0.3, 217));   // left Top
+	//dect_pos.push_back(std::make_pair(0.3, 323));   // right Top
 
-	int roi_length = 100;
-	int roi_width = 60;
+	dect_pos.push_back(std::make_pair(0.3, 0));  // right 
+	dect_pos.push_back(std::make_pair(0.3, 90));   // down
+	dect_pos.push_back(std::make_pair(0.3, 180));   // left 
+	dect_pos.push_back(std::make_pair(0.3, 270));   // Top
+
+	dect_pos.push_back(std::make_pair(0.7, 37));  // right down
+	dect_pos.push_back(std::make_pair(0.7, 143));   // left down
+	dect_pos.push_back(std::make_pair(0.7, 217));   // left Top
+	dect_pos.push_back(std::make_pair(0.7, 323));   // right Top
+
+
+	int roi_length = 40;
+	int roi_width = 40;
 	double spatial_freq_denominator = 3.0;
-	double gamma = 0.3;
+	double gamma = 1.0;//0.3;
 	bool save_image = true;
 
 	std::vector<double> sfr_h_w2b;
@@ -2357,7 +2414,7 @@ void color_Tester::on_pushButton_SFR_ROI4_clicked() {
 	int return_value = FourDirectionSFR(gray_image.cols, gray_image.rows, gray_image.data, imageCopy.data, dect_pos, roi_length, roi_width, spatial_freq_denominator, gamma,
 		sfr_h_w2b, sfr_h_b2w, sfr_v_w2b, sfr_v_b2w, save_image);
 
-	for (int i = 0; i < 5; i++) {	
+	for (int i = 0; i < dect_pos.size(); i++) {
 		fout << "Field_" << i << "_H:	" << sfr_h_w2b[i] << "	" << sfr_h_b2w[i] << "	" << sfr_h_w2b[i] - sfr_h_b2w[i] << endl;
 		fout << "Field_" << i << "_V:	" << sfr_v_w2b[i] << "	" << sfr_v_b2w[i] << "	" << sfr_v_w2b[i] - sfr_v_b2w[i] << endl;
 	}
@@ -2365,6 +2422,82 @@ void color_Tester::on_pushButton_SFR_ROI4_clicked() {
 	fout.close();
 }
 
+void My_DFT(cv::Mat input_image, cv::Mat& output_image, cv::Mat& transform_image)
+{
+	//1.扩展图像矩阵，为2，3，5的倍数时运算速度快
+	int m = cv::getOptimalDFTSize(input_image.rows);
+	int n = cv::getOptimalDFTSize(input_image.cols);
+	cv::copyMakeBorder(input_image, input_image, 0, m - input_image.rows, 0, n - input_image.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
+
+	//2.创建一个双通道矩阵planes，用来储存复数的实部与虚部
+	cv::Mat planes[] = { cv::Mat_<float>(input_image), cv::Mat::zeros(input_image.size(), CV_32F) };
+
+	//3.从多个单通道数组中创建一个多通道数组:transform_image。函数Merge将几个数组合并为一个多通道阵列，即输出数组的每个元素将是输入数组元素的级联
+	merge(planes, 2, transform_image);
+
+	//4.进行傅立叶变换
+	cv::dft(transform_image, transform_image);
+
+	//5.计算复数的幅值，保存在output_image（频谱图）
+	split(transform_image, planes); // 将双通道分为两个单通道，一个表示实部，一个表示虚部
+	cv::Mat transform_image_real = planes[0];
+	cv::Mat transform_image_imag = planes[1];
+
+	magnitude(planes[0], planes[1], output_image); //计算复数的幅值，保存在output_image（频谱图）
+											   //6.前面得到的频谱图数级过大，不好显示，因此转换
+	output_image += cv::Scalar(1);   // 取对数前将所有的像素都加1，防止log0
+	log(output_image, output_image);   // 取对数
+	normalize(output_image, output_image, 0, 1, cv::NORM_MINMAX); //归一化
+
+																  //7.剪切和重分布幅度图像限
+	output_image = output_image(cv::Rect(0, 0, output_image.cols & -2, output_image.rows & -2));
+
+	// 重新排列傅里叶图像中的象限，使原点位于图像中心
+	int cx = output_image.cols / 2;
+	int cy = output_image.rows / 2;
+	cv::Mat q0(output_image, cv::Rect(0, 0, cx, cy));   // 左上区域
+	cv::Mat q1(output_image, cv::Rect(cx, 0, cx, cy));  // 右上区域
+	cv::Mat q2(output_image, cv::Rect(0, cy, cx, cy));  // 左下区域
+	cv::Mat q3(output_image, cv::Rect(cx, cy, cx, cy)); // 右下区域
+
+														//交换象限中心化
+	cv::Mat tmp;
+	q0.copyTo(tmp); q3.copyTo(q0); tmp.copyTo(q3);//左上与右下进行交换
+	q1.copyTo(tmp); q2.copyTo(q1); tmp.copyTo(q2);//右上与左下进行交换
 
 
+	cv::Mat q00(transform_image_real, cv::Rect(0, 0, cx, cy));   // 左上区域
+	cv::Mat q01(transform_image_real, cv::Rect(cx, 0, cx, cy));  // 右上区域
+	cv::Mat q02(transform_image_real, cv::Rect(0, cy, cx, cy));  // 左下区域
+	cv::Mat q03(transform_image_real, cv::Rect(cx, cy, cx, cy)); // 右下区域
+	q00.copyTo(tmp); q03.copyTo(q00); tmp.copyTo(q03);//左上与右下进行交换
+	q01.copyTo(tmp); q02.copyTo(q01); tmp.copyTo(q02);//右上与左下进行交换
 
+	cv::Mat q10(transform_image_imag, cv::Rect(0, 0, cx, cy));   // 左上区域
+	cv::Mat q11(transform_image_imag, cv::Rect(cx, 0, cx, cy));  // 右上区域
+	cv::Mat q12(transform_image_imag, cv::Rect(0, cy, cx, cy));  // 左下区域
+	cv::Mat q13(transform_image_imag, cv::Rect(cx, cy, cx, cy)); // 右下区域
+	q10.copyTo(tmp); q13.copyTo(q10); tmp.copyTo(q13);//左上与右下进行交换
+	q11.copyTo(tmp); q12.copyTo(q11); tmp.copyTo(q12);//右上与左下进行交换
+
+	planes[0] = transform_image_real;
+	planes[1] = transform_image_imag;
+	merge(planes, 2, transform_image);//将傅里叶变换结果中心化
+}
+
+void color_Tester:: on_pushButton_DFT_clicked() {
+
+	QString qs_name = QFileDialog::getOpenFileName(this, tr("Open Image"), "", tr("Image File(*.bmp *.jpg *.jpeg *.png *.pbm *.pgm *.ppm)"));
+	QTextCodec *code = QTextCodec::codecForName("gb18030");
+	std::string name = code->fromUnicode(qs_name).data();
+
+	image = imread(name, 3);
+	cvtColor(image, gray_image, CV_BGR2GRAY);
+
+	string imgName = "DFT"; int flag = 1;
+
+	My_DFT(gray_image, dst, normImage);
+
+	namedWindow(imgName, flag);
+	imshow(imgName, dst);
+}

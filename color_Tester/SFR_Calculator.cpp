@@ -1309,7 +1309,7 @@ double SFR_Calculator::getSfrWithSpatialFreq(double spatial_freq) {
 	if (isnan(sfr_result)) {
 		sfr_result = -1.0;
 	}
-	return sfr_Area;
+	//return sfr_Area;
 
 	return sfr_result;
 }

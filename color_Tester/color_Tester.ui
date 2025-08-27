@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>color_Tester</string>
+   <string>QT 64bit Tool 250125 by songye.guo</string>
   </property>
   <widget class="QLabel" name="label_show_image">
    <property name="geometry">
@@ -39,7 +39,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>2</number>
+    <number>3</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -130,6 +130,22 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="text">
       <string>Iris</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_img_area">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>370</x>
+       <y>60</y>
+       <width>70</width>
+       <height>30</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Img_Area</string>
      </property>
     </widget>
    </widget>
@@ -369,6 +385,22 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="text">
       <string>PIMA2</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_DFT">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>30</y>
+       <width>70</width>
+       <height>30</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>DFT</string>
      </property>
     </widget>
    </widget>

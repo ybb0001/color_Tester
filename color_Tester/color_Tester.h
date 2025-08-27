@@ -17,7 +17,7 @@
 using namespace cv;
 using namespace std;
 
-#define PYTHON_DLL
+//#define PYTHON_DLL
 
 class color_Tester : public QWidget
 {
@@ -38,14 +38,15 @@ public slots:
 	void on_pushButton_clear_clicked();
 	void on_pushButton_Color_Diff_clicked();
 	void on_pushButton_Iris_clicked();
-
+	void on_pushButton_img_area_clicked();
 	
 	void on_pushButton_raw2bmp_clicked();
 	void on_pushButton_PIMA_clicked();
 	void on_pushButton_PIMA_2_clicked();
 	void on_pushButton_open_raw_clicked();
 	void on_pushButton_open_bmp_clicked();
-
+	
+	void on_pushButton_DFT_clicked();
 
 	void on_pushButton_Xiaomi_SFR_clicked();
 	void on_pushButton_SFR_ROI4_clicked();
